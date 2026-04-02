@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Code Generator</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Inter', Arial, sans-serif;
+    background: #1e1f22;
+    color: #e3e5e8;
+    display: flex;
+    justify-content: center;
+    padding-top: 40px;
+}
+
+.container {
+    background: #2b2d31;
+    padding: 20px;
+    border-radius: 12px;
+    width: 320px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* 🔥 consistent spacing */
+}
+
+/* Options */
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.options label {
+    display: flex;
+    align-items: center;
+    gap: 10px;        /* space between box and text */
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Checkbox (animated) */
+input[type="checkbox"] {
+    all: unset;
+    width: 20px;
+    height: 20px;
+    background: #3a3b40;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+input[type="checkbox"]:checked {
+    background: #5865f2;
+    transform: scale(1.05);
+}
+
+input[type="checkbox"]::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background: white;
+    transform: scale(0);
+    transition: 0.2s;
+}
+
+input[type="checkbox"]:checked::after {
+    transform: scale(1);
+}
+
+/* Slider */
+.slider {
+    margin: 15px 0;
+}
+
+.slider label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    --fill: 20%;
+    background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(
+        to right,
+        #5865f2 0%,
+        #5865f2 var(--fill),
+        #3a3b40 var(--fill),
+        #3a3b40 100%
+    );
+}
+
+/* invisible thumb */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+/* Output */
+.output-container {
+    position: relative;
+}
+
+#output {
+    width: 100%;
+    height: 40px;
+    padding: 0 40px 0 10px;
+    background: #1e1f22;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    overflow-x: auto;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+#output::-webkit-scrollbar {
+    display: none;
+}
+
+.copy-icon {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    cursor: pointer;
+}
+
+/* Button */
+button {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #5865f2, #6d78ff);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+/* hover */
+button:hover {
+    filter: brightness(1.1);
+}
+
+/* click */
+button:active {
+    transform: scale(0.96);
+}
+
+/* Toast */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toast {
+    background: #2b2d31;
+    padding: 10px;
+    border-left: 4px solid #5865f2;
+    border-radius: 6px;
+}
+
+/* only newest animates */
+.toast.animate {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: 0.25s;
+}
+
+.toast.animate.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.animate.hide {
+    opacity: 0;
+    transform: translateY(-5px);
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Code Generator</h1>
+
+    <div class="options">
+        <label><input type="checkbox" id="uppercase"> Capital Letters</label>
+        <label><input type="checkbox" id="lowercase"> Lowercase Letters</label>
+        <label><input type="checkbox" id="numbers"> Numbers</label>
+        <label><input type="checkbox" id="autoCopy"> Auto Copy</label>
+    </div>
+
+    <div class="slider">
+        <label for="length">Length: <span id="lengthValue">12</span></label>
+        <input type="range" id="length" min="4" max="50" value="12">
+    </div>
+
+    <div class="output-container">
+        <input id="output" placeholder="Generated code will be here" readonly>
+        <span class="copy-icon" onclick="copyCode()">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+    <rect x="9" y="9" width="13" height="13" rx="2" stroke="white" stroke-width="2"/>
+    <rect x="3" y="3" width="13" height="13" rx="2" stroke="white" stroke-width="2" opacity="0.6"/>
+</svg>
+</span>
+    </div>
+
+    <button onclick="generateCode()">Generate</button>
+</div>
+
+<script>
+const output = document.getElementById("output");
+const uppercase = document.getElementById("uppercase");
+const lowercase = document.getElementById("lowercase");
+const numbers = document.getElementById("numbers");
+const autoCopy = document.getElementById("autoCopy");
+
+const lengthSlider = document.getElementById("length");
+const lengthValue = document.getElementById("lengthValue");
+
+// ✅ FIXED slider + fill
+lengthSlider.oninput = () => {
+    const percent = (lengthSlider.value - 4) / 46 * 100;
+    lengthValue.textContent = lengthSlider.value;
+    lengthSlider.style.setProperty('--fill', percent + '%');
+};
+lengthSlider.oninput();
+
+// Generate
+function generateCode() {
+    let chars = "";
+
+    if (uppercase.checked) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (lowercase.checked) chars += "abcdefghijklmnopqrstuvwxyz";
+    if (numbers.checked) chars += "0123456789";
+
+    if (!chars) {
+        showToast("Select at least one option", "error");
+        return;
+    }
+
+    let result = "";
+    for (let i = 0; i < lengthSlider.value; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    typeWriter(result);
+
+    if (autoCopy.checked) copyCode(true);
+}
+
+// ✅ FIXED typewriter (still scrolls)
+function typeWriter(text) {
+    output.value = "";
+    let i = 0;
+
+    function type() {
+        if (i < text.length) {
+            output.value += text[i];
+            i++;
+
+            output.scrollLeft = output.scrollWidth;
+
+            const speed = Math.random() < 0.1 ? 80 : Math.random() * 30 + 10;
+            setTimeout(type, speed);
+        }
+    }
+
+    type();
+}
+
+// ✅ FIXED clipboard + animation
+async function copyCode(silent = false) {
+    const value = output.value.trim();
+
+    if (!value) {
+        if (!silent) showToast("Nothing to copy", "error");
+        return;
+    }
+    
+    const icon = document.querySelector(".copy-icon svg");
+
+icon.innerHTML = `
+<polyline points="20 6 9 17 4 12" stroke="white" stroke-width="2" fill="none"/>
+`;
+
+setTimeout(() => {
+    icon.innerHTML = `
+    <rect x="9" y="9" width="13" height="13" rx="2" stroke="white" stroke-width="2"/>
+    <rect x="3" y="3" width="13" height="13" rx="2" stroke="white" stroke-width="2" opacity="0.6"/>
+    `;
+}, 1000);
+
+    try {
+        await navigator.clipboard.writeText(value);
+        if (!silent) showToast("Copied!", "success");
+    } catch {
+        if (!silent) showToast("Copy failed", "error");
+    }
+}
+
+// Toast
+function showToast(message, type) {
+    let container = document.getElementById("toast-container");
+
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toast-container";
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+
+    if (type === "success") toast.style.borderLeftColor = "#3ba55d";
+    if (type === "error") toast.style.borderLeftColor = "#ed4245";
+
+    container.appendChild(toast);
+
+    if (container.children.length > 4) {
+        container.firstChild.remove();
+    }
+
+    toast.classList.add("animate");
+
+    requestAnimationFrame(() => {
+        toast.classList.add("show");
+    });
+
+    setTimeout(() => {
+        toast.classList.add("hide");
+        setTimeout(() => toast.remove(), 250);
+    }, 2000);
+}
+</script>
+
+</body>
+</html>
